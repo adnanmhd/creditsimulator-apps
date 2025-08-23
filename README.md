@@ -66,3 +66,24 @@ Motor|Bekas|2021|1000000000|3|500000000
 
 ```maven
 mvn clean test
+```
+
+## Others
+
+This apps also has function `Load Existing Calculation` to call external API to perform loan calculation base on the API response.
+URL:
+[dummyjson.com/c/9dc6-2753-42d6-882c]()
+
+Response sample:
+
+```file
+{
+  "vehicleType": "Mobil",
+  "vehicleCondition": "Baru",
+  "vehicleYear": 2025,
+  "totalLoanAmount": 1000000000,
+  "loanTenure": 6,
+  "downPayment": 500000000
+}
+```
+
