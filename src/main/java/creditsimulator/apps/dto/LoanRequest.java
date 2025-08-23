@@ -10,4 +10,19 @@ public class LoanRequest {
     private Double totalLoanAmount;
     private int tenure;
     private Double downPaymentAmount;
+
+    public static LoanRequest toLoanRequest(LoanResponseDto api) {
+        LoanRequest request = new LoanRequest();
+        Vehicle vehicle = new Vehicle();
+        vehicle.setType(api.getVehicleType());
+        vehicle.setYear(api.getVehicleYear());
+        vehicle.setCondition(api.getVehicleCondition());
+
+        request.setVehicle(vehicle);
+        request.setTotalLoanAmount(Double.parseDouble(api.getTotalLoanAmount()));
+        request.setTenure(Integer.parseInt(api.getLoanTenure()));
+        request.setDownPaymentAmount(Double.parseDouble(api.getDownPayment()));
+
+        return request;
+    }
 }

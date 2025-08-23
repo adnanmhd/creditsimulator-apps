@@ -4,12 +4,13 @@ import creditsimulator.apps.dto.Loan;
 import creditsimulator.apps.dto.LoanRequest;
 import creditsimulator.apps.dto.LoanResult;
 import creditsimulator.apps.dto.Vehicle;
+import creditsimulator.apps.exception.ApiException;
+import creditsimulator.apps.exception.DuplicateDataException;
 import creditsimulator.apps.service.CreditSimulatorService;
 
 import java.math.BigDecimal;
-import java.time.Year;
+import java.util.Map;
 import java.util.Scanner;
-import java.util.function.Predicate;
 
 import static creditsimulator.apps.dto.Constant.Condition;
 import static creditsimulator.apps.dto.Constant.VehicleType;
@@ -18,6 +19,8 @@ public class CreditSimulatorController {
     private final Scanner scanner = new Scanner(System.in);
 
     private final CreditSimulatorService simulatorService;
+    private final InputValidator inputValidator;
+
     String vehicleType;
     String vehicleCondition;
     String yearOfVehicle;
@@ -29,114 +32,146 @@ public class CreditSimulatorController {
 
     public CreditSimulatorController(CreditSimulatorService simulatorService) {
         this.simulatorService = simulatorService;
+        this.inputValidator = new InputValidator(scanner);
     }
 
     public void start() {
-        System.out.println("=== Credit Simulator Apps ===");
+        try {
+            while (true) {
+                System.out.println();
+                System.out.println("=== Credit Simulator Apps ===");
+                System.out.println("1. Buat simulasi baru");
+                System.out.println("2. Load Existing Calculation");
+                System.out.println("3. Lihat Sheet Tersimpan");
+                System.out.println("4. Switch Sheet");
+                System.out.println("5. Keluar");
 
-        vehicleType = validateInput(
+                System.out.print("Pilih menu: ");
+                String choice = scanner.nextLine().trim();
+
+                switch (choice) {
+                    case "1" -> calculateLoan();
+                    case "2" -> calculateLoanWithExistingLoad();
+                    case "3" -> showSheets();
+                    case "4" -> switchSheet();
+                    case "5" -> {
+                        System.out.println("Terima kasih");
+                        return;
+                    }
+                    default -> System.out.println("Pilihan tidak valid!");
+                }
+            }
+        } catch (ApiException e) {
+            System.out.println("Terjadi kesalahan saat call API - " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Terjadi error pada: " + e.getMessage());
+        }
+    }
+
+    private void showSheets() {
+        Map<String, LoanResult> savedLoan = simulatorService.getSavedSheet();
+
+        if (savedLoan.isEmpty()) {
+            System.out.println("Belum ada sheet tersimpan.");
+        }
+
+        int no = 1;
+        System.out.println("=== Daftar Sheet ===");
+        for (String sheet : savedLoan.keySet()) {
+            System.out.println(no + ". " + sheet);
+            no++;
+        }
+    }
+
+    private void switchSheet() {
+        Map<String, LoanResult> savedLoan = simulatorService.getSavedSheet();
+        if (savedLoan.isEmpty()) {
+            System.out.println("Belum ada sheet tersimpan.");
+            return;
+        }
+        System.out.print("Masukkan nama sheet: ");
+        String name = scanner.nextLine().trim();
+
+        if (savedLoan.containsKey(name)) {
+            printCalculationResult(savedLoan.get(name));
+        } else {
+            System.out.println("Sheet tidak ditemukan!");
+        }
+    }
+
+    public void calculateLoanWithExistingLoad() throws Exception {
+        LoanResult result = simulatorService.calculateLoanWithExistingLoad();
+        printCalculationResult(result);
+        saveSheet(result);
+    }
+
+    public void calculateLoan() {
+        System.out.println("=== Simulasi Baru ===");
+
+        vehicleType = inputValidator.validateInput(
                 "Jenis Kendaraan Motor|Mobil: ",
                 input -> input.equalsIgnoreCase(VehicleType.MOTOR.toString())
                         || input.equalsIgnoreCase(VehicleType.MOBIL.toString()),
                 "Invalid input! Mohon input 'Motor' atau 'Mobil': "
         );
 
-        vehicleCondition = validateInput(
+        vehicleCondition = inputValidator.validateInput(
                 "Kendaraan Bekas|Baru: ",
                 input -> input.equalsIgnoreCase(Condition.BEKAS.toString())
                         || input.equalsIgnoreCase(Condition.BARU.toString()),
                 "Invalid input! Mohon input 'Bekas' atau 'Baru': "
         );
 
-        yearOfVehicle = validateYear();
+        yearOfVehicle = inputValidator.validateYear(vehicleCondition);
 
-        loanAmount = validateInput(
+        loanAmount = inputValidator.validateInput(
                 "Jumlah Pinjaman Total: ",
                 input -> input.matches("\\d+"),
                 "Invalid input! Mohon masukkan angka: "
         );
 
-        loanTenure = validateInput(
+        loanTenure = inputValidator.validateInput(
                 "Tenor Pinjaman 1-6 thn: ",
                 input -> input.matches("[1-6]"),
                 "Invalid input! Masukan angka 1-6: "
         );
 
-        dpAmount = validateDP();
+        dpAmount = inputValidator.validateDP(loanAmount, vehicleCondition);
 
         setVehicleAndLoan();
 
         LoanResult result = simulatorService.calculateLoan(loan);
+        printCalculationResult(result);
+        saveSheet(result);
+    }
 
+    private void saveSheet(LoanResult result) {
+        while (true) {
+            System.out.print("Masukan nama sheet: ");
+            String sheetName = scanner.nextLine().trim();
+
+            try {
+                simulatorService.saveSheet(sheetName, result);
+                System.out.println("Sheet berhasil disimpan dengan nama: " + sheetName);
+                break;
+            } catch (DuplicateDataException e) {
+                System.out.println("Sheet dengan nama '" + sheetName + "' sudah ada. Silakan masukan nama lain.");
+            } catch (Exception e) {
+                System.out.println("Terjadi kesalahan saat menyimpan: " + e.getMessage());
+                break;
+            }
+        }
+    }
+
+    private void printCalculationResult(LoanResult result) {
         for (Loan data : result.getLoanResultCalculation()) {
-            System.out.println("tahun: " + data.getCurrentYear());
-            System.out.println("pokok pinjaman: " + BigDecimal.valueOf(data.getLoanPrincipal()).toPlainString());
-            System.out.println("rate: " + data.getInterestRate());
-            System.out.println("total pinjaman: " + BigDecimal.valueOf(data.getLoanTotal()).toPlainString());
-            System.out.println("installment monthly: " + BigDecimal.valueOf(data.getInstallmentMonthly()).toPlainString());
-            System.out.println("installment yearly: " + BigDecimal.valueOf(data.getInstallmentYearly()).toPlainString());
+            System.out.println("Tahun: " + data.getCurrentYear());
+            System.out.println("Pokok Pinjaman: " + BigDecimal.valueOf(data.getLoanPrincipal()).toPlainString());
+            System.out.println("Rate: " + data.getInterestRate());
+            System.out.println("Total Pinjaman: " + BigDecimal.valueOf(data.getLoanTotal()).toPlainString());
+            System.out.println("Installment Monthly: " + BigDecimal.valueOf(data.getInstallmentMonthly()).toPlainString());
+            System.out.println("Installment Yearly: " + BigDecimal.valueOf(data.getInstallmentYearly()).toPlainString());
             System.out.println();
-        }
-
-    }
-    private String validateInput(String message, Predicate<String> validator, String errorMessage) {
-        System.out.print(message);
-        while (true) {
-            String input = scanner.nextLine().trim();
-            if (validator.test(input)) {
-                return input;
-            }
-            System.out.print(errorMessage);
-        }
-    }
-
-    private String validateYear() {
-        int currentYear = Year.now().getValue();
-        System.out.print("Tahun Kendaraan: ");
-        while (true) {
-            String input = scanner.nextLine().trim();
-            if (!input.matches("\\d{4}")) {
-                System.out.print("Invalid input! Mohon input 4 digit angka tahun: ");
-                continue;
-            }
-            int year = Integer.parseInt(input);
-            if (Condition.BARU.toString().equalsIgnoreCase(vehicleCondition)
-                    && year < currentYear-1) {
-
-                System.out.print("Tahun kendaraan baru tidak valid: ");
-
-            } else {
-                return input;
-            }
-        }
-    }
-
-    private String validateDP() {
-        String errorMessage = "Nilai DP minimal %s dari pinjaman: ";
-        double totalLoan = Double.parseDouble(loanAmount);
-        double validDpForUsed = totalLoan * 25 / 100;
-        double validDpForNew = totalLoan * 35 / 100;
-
-        System.out.print("Jumlah DP: ");
-        while (true) {
-            String input = scanner.nextLine().trim();
-            if (!input.matches("\\d+")) {
-                System.out.print("Invalid input! Mohon masukkan angka: ");
-                continue;
-            }
-            double dp = Double.parseDouble(input);
-
-            if (Condition.BEKAS.toString().equalsIgnoreCase(vehicleCondition)
-                    && dp < validDpForUsed) {
-
-                System.out.printf(errorMessage, "25%");
-
-            } else if (Condition.BARU.toString().equalsIgnoreCase(vehicleCondition)
-                    && dp < validDpForNew) {
-                System.out.printf(errorMessage, "35%");
-            } else {
-                return input;
-            }
         }
     }
 
@@ -151,6 +186,7 @@ public class CreditSimulatorController {
         loan.setTotalLoanAmount(Double.valueOf(loanAmount));
         loan.setTenure(Integer.parseInt(loanTenure));
         loan.setDownPaymentAmount(Double.valueOf(dpAmount));
+
     }
 
 }
