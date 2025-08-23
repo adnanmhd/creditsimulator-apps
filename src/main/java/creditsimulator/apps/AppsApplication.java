@@ -2,6 +2,7 @@ package creditsimulator.apps;
 
 
 import creditsimulator.apps.controller.CreditSimulatorController;
+import creditsimulator.apps.repository.LoanRepository;
 import creditsimulator.apps.service.CreditSimulatorService;
 import creditsimulator.apps.util.ApiUtil;
 

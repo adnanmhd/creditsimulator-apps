@@ -1,4 +1,4 @@
-package creditsimulator.apps;
+package creditsimulator.apps.repository;
 
 import creditsimulator.apps.dto.LoanResult;
 import creditsimulator.apps.exception.DuplicateDataException;

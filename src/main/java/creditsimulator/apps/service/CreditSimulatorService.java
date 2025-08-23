@@ -1,6 +1,6 @@
 package creditsimulator.apps.service;
 
-import creditsimulator.apps.LoanRepository;
+import creditsimulator.apps.repository.LoanRepository;
 import creditsimulator.apps.dto.Constant.VehicleType;
 import creditsimulator.apps.dto.*;
 import creditsimulator.apps.exception.DuplicateDataException;
