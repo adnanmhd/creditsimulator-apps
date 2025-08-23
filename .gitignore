@@ -1,5 +1,8 @@
 HELP.md
 target/
+.gitattributes
+maven-wrapper*
+mvnw*
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

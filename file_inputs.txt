@@ -1,0 +1,3 @@
+vehicle_type|vehicle_condition|vehicle_year|total_loan_amount|loan_tenure|down_payment
+Mobil|Baru|2025|1000000000|6|500000000
+Motor|Bekas|2021|1000000000|2|300000000
