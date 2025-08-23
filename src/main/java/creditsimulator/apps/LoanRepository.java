@@ -16,6 +16,10 @@ public class LoanRepository {
         savedLoan.put(key, result);
     }
 
+    public void saveAll(Map<String, LoanResult> loans) {
+        savedLoan.putAll(loans);
+    }
+
     public Map<String, LoanResult> getAllLoan() {
         return savedLoan;
     }

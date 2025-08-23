@@ -8,6 +8,7 @@ import creditsimulator.apps.exception.ApiException;
 import creditsimulator.apps.exception.DuplicateDataException;
 import creditsimulator.apps.service.CreditSimulatorService;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Scanner;
@@ -33,6 +34,16 @@ public class CreditSimulatorController {
     public CreditSimulatorController(CreditSimulatorService simulatorService) {
         this.simulatorService = simulatorService;
         this.inputValidator = new InputValidator(scanner);
+    }
+
+    public void calculateLoanFromFile(String fileName) {
+        try {
+            simulatorService.calculateLoanFromFile(fileName);
+            System.out.println("Sukses menambahkan data loan dari file " + fileName + ". Silahkan cek di menu Sheet Tersimpan");
+            start();
+        } catch (IOException e) {
+            System.out.println("Terjadi error saat membaca file: " + e.getMessage());
+        }
     }
 
     public void start() {
